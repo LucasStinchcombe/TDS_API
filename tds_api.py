@@ -2,66 +2,10 @@
 """
 Toyota Driving School API
 """
-
-from datetime import datetime
-
 import re
 import requests
-
-_HEADERS = {
-    'Connection':'keep-alive',
-    'Pragma':'no-cache',
-    'Cache-Control':'no-cache',
-    'Origin':'https://www.e-license.jp',
-    'Upgrade-Insecure-Requests':'1',
-    'Content-Type':'application/x-www-form-urlencoded',
-    'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) ' \
-                 'AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                 'Chrome/68.0.3440.75 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;' \
-               'q=0.9,image/webp,image/apng,*/*;' \
-               'q=0.8',
-    'Referer': 'https://www.e-license.jp/el25/mobile?' \
-               'abc=LAtcyKgwukI\x2BbrGQYS\x2B1OA\x3D\x3D',
-    'Accept-Encoding':'gzip, deflate, br',
-    'Accept-Language':'en-US,en;q=0.9',
-}
-
-_DATA = {
-    'b.wordsStudentNo': '\x8b\xb3\x8f\x4b\x90\xb6\x94\xd4\x8d\x86',
-    'b.schoolCd': 'LAtcyKgwukI\x2BbrGQYS\x2B1OA\x3D\x3D',
-    'server': '',
-}
-
-
-def _toyota_req(res):
-    """
-    Filters out expired session responses.
-    """
-    res.encoding = 'shift_jis'
-
-    if re.search('接続を切りました', res.text):
-        return None
-
-    return res
-
-
-def _get_datetime(month, day, hour=0, minute=0):
-    """
-    Get datetime given just month, day, hour.
-
-    Toyota Driving School website does not display year so it is infered
-    from current year and month displayed.
-    """
-
-    cur_year = datetime.now().year
-    cur_month = datetime.now().month
-
-    year = cur_year
-    if cur_month == 12 and month != 12:
-        year += 1
-
-    return datetime(year, month, day, hour, minute)
+from constants import HEADERS, DATA
+from utils import toyota_req, get_datetime
 
 
 def login(username, password):
@@ -81,9 +25,9 @@ def login(username, password):
         'b.kamokuCd': '',
     }
 
-    data.update(_DATA)
-    res = _toyota_req(
-        requests.post(url, headers=_HEADERS, data=data)
+    data.update(DATA)
+    res = toyota_req(
+        requests.post(url, headers=HEADERS, data=data)
     )
 
     reg = '教習生'
@@ -109,11 +53,11 @@ def get_availability(cookies):
         'b.kamokuCd': '0',
     }
 
-    params.update(_DATA)
+    params.update(DATA)
 
-    res = _toyota_req(
+    res = toyota_req(
         requests.get(url,
-                     headers=_HEADERS,
+                     headers=HEADERS,
                      params=params,
                      cookies=cookies)
     )
@@ -130,10 +74,8 @@ def get_availability(cookies):
     for match in re.finditer(reg, res.text):
         car_model_cd = match.group(1)
 
-        month = int(match.group(2))
-        day = int(match.group(3))
-
-        session_dt = _get_datetime(month, day)
+        session_dt = get_datetime(int(match.group(2)),
+                                  int(match.group(3)))
 
         retval.append((session_dt,
                        list(match.group(4).replace(' ', '')),
@@ -169,11 +111,11 @@ def register(cookies, session, period_idx):
         'b.nominationInstructorCd': 0
     }
 
-    params.update(_DATA)
-    token_res = _toyota_req(
+    params.update(DATA)
+    token_res = toyota_req(
         requests.get(token_url,
                      params=params,
-                     headers=_HEADERS,
+                     headers=HEADERS,
                      cookies=cookies)
     )
 
@@ -194,9 +136,9 @@ def register(cookies, session, period_idx):
     }
     data.update(params)
 
-    return _toyota_req(
+    return toyota_req(
         requests.post(register_url,
-                      headers=_HEADERS,
+                      headers=HEADERS,
                       data=data,
                       cookies=cookies)
     )
@@ -214,10 +156,10 @@ def cancel_choices(cookies):
         'b.processCd': 'F',
     }
 
-    params.update(_DATA)
-    res = _toyota_req(
+    params.update(DATA)
+    res = toyota_req(
         requests.get(url,
-                     headers=_HEADERS,
+                     headers=HEADERS,
                      params=params,
                      cookies=cookies)
     )
@@ -235,10 +177,10 @@ def cancel_choices(cookies):
         reserved_cds = match.group(1)
         checkbox_reserved_cds = match.group(2)
 
-        session_dt = _get_datetime(int(match.group(3)),
-                                   int(match.group(4)),
-                                   int(match.group(5)),
-                                   int(match.group(6)))
+        session_dt = get_datetime(int(match.group(3)),
+                                  int(match.group(4)),
+                                  int(match.group(5)),
+                                  int(match.group(6)))
 
         retval.append((session_dt, reserved_cds, checkbox_reserved_cds))
 
@@ -262,10 +204,10 @@ def cancel(cookies, session):
         'b.page': 1
     }
 
-    data.update(_DATA)
-    res = _toyota_req(
+    data.update(DATA)
+    res = toyota_req(
         requests.post(url,
-                      headers=_HEADERS,
+                      headers=HEADERS,
                       data=data,
                       cookies=cookies))
 
@@ -285,9 +227,9 @@ def cancel(cookies, session):
     }
 
     url = 'https://www.e-license.jp/el25/mobile/m14b.action'
-    data.update(_DATA)
-    return _toyota_req(
+    data.update(DATA)
+    return toyota_req(
         requests.post(url,
-                      headers=_HEADERS,
+                      headers=HEADERS,
                       data=data,
                       cookies=cookies))
