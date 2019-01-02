@@ -7,7 +7,6 @@ CREDENTIALS = {
     'password': 'password'
 }
 
-
 HEADERS = {
     'Connection':'keep-alive',
     'Pragma':'no-cache',
@@ -26,7 +25,6 @@ HEADERS = {
     'Accept-Encoding':'gzip, deflate, br',
     'Accept-Language':'en-US,en;q=0.9',
 }
-
 
 DATA = {
     'b.wordsStudentNo': '\x8b\xb3\x8f\x4b\x90\xb6\x94\xd4\x8d\x86',
@@ -74,9 +72,15 @@ def login(username=CREDENTIALS['username'],
     }
 
     data.update(DATA)
-    return toyota_req(
+    res = toyota_req(
             requests.post(url, headers=HEADERS, data=data)
     )
+
+    reg = '教習生'
+    if re.search(reg, res.text):
+        return res
+    else:
+        return None
 
 
 def getAvailability(cookies):
@@ -129,19 +133,17 @@ def getAvailability(cookies):
     return sorted(retval, key=lambda x: x[0])
 
 
-def register(cookies, context, date_idx, period_idx):
+def register(cookies, session, period_idx):
     '''
     Register for section for month, day period.
 
     :param date: datetime date object
-    :param context: context returned from getAvailability()
-
-    :param date_idx: index in context of date to register
-    :param period_idx: index in schedule of period to register
+    :param session: session returned from getAvailability()
+    :param period_idx: index in session schedule of period to register
     '''
 
-    register_date = context[date_idx][0]
-    carModelCd = context[date_idx][2]
+    register_date = session[0]
+    carModelCd = session[2]
 
     date_string = register_date.strftime('%Y%m%d')
     token_url = 'https://www.e-license.jp/el25/mobile/m03d.action'
