@@ -1,0 +1,3 @@
+lint: *.py
+	pylint $?
+
