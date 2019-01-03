@@ -7,7 +7,6 @@ import requests
 from constants import HEADERS, DATA
 from utils import toyota_req, get_datetime
 
-
 def login(username, password):
     """
     Login to toyota driving school.
@@ -35,7 +34,6 @@ def login(username, password):
         return res.cookies
 
     return None
-
 
 def get_availability(cookies):
     """
@@ -147,7 +145,7 @@ def register(cookies, session, period_idx):
 
     return res
 
-def cancel_choices(cookies):
+def get_cancel_choices(cookies):
     """
     Get choices for cancel.
 
@@ -192,7 +190,6 @@ def cancel_choices(cookies):
         })
 
     return sorted(retval, key=lambda x: x['datetime'])
-
 
 def cancel(cookies, session):
     """
