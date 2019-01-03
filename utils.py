@@ -22,7 +22,7 @@ def get_datetime(month, day, hour=0, minute=0):
     """
     Get datetime given just month, day, hour.
 
-    Toyota Driving School website does not display year so it is infered
+    Toyota Driving School website does not display year so it is inferred
     from current year and month displayed.
     """
 

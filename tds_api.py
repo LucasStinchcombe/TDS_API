@@ -52,7 +52,6 @@ def get_availability(cookies):
         'b.processCd' : 'A',
         'b.kamokuCd': '0',
     }
-
     params.update(DATA)
 
     res = toyota_req(
@@ -76,13 +75,13 @@ def get_availability(cookies):
 
         session_dt = get_datetime(int(match.group(2)),
                                   int(match.group(3)))
+        retval.append({
+            "date": session_dt,
+            "schedule": list(match.group(4).replace(' ', '')),
+            "car_model_cd": car_model_cd
+        })
 
-        retval.append((session_dt,
-                       list(match.group(4).replace(' ', '')),
-                       car_model_cd))
-
-    return sorted(retval, key=lambda x: x[0])
-
+    return sorted(retval, key=lambda x: x["date"])
 
 def register(cookies, session, period_idx):
     """
@@ -93,8 +92,8 @@ def register(cookies, session, period_idx):
     :param period_idx: index in session schedule of period to register
     """
 
-    register_date = session[0]
-    car_model_cd = session[2]
+    register_date = session['date']
+    car_model_cd = session['car_model_cd']
 
     date_string = register_date.strftime('%Y%m%d')
     token_url = 'https://www.e-license.jp/el25/mobile/m03d.action'
@@ -136,13 +135,17 @@ def register(cookies, session, period_idx):
     }
     data.update(params)
 
-    return toyota_req(
+    res = toyota_req(
         requests.post(register_url,
                       headers=HEADERS,
                       data=data,
                       cookies=cookies)
     )
 
+    if re.search('<font class="error"><BR>！', res.text):
+        return False
+
+    return res
 
 def cancel_choices(cookies):
     """
@@ -182,9 +185,13 @@ def cancel_choices(cookies):
                                   int(match.group(5)),
                                   int(match.group(6)))
 
-        retval.append((session_dt, reserved_cds, checkbox_reserved_cds))
+        retval.append({
+            'datetime': session_dt,
+            'reserved_cds':reserved_cds,
+            'checkbox_reserved_cds': checkbox_reserved_cds
+        })
 
-    return sorted(retval, key=lambda x: x[0])
+    return sorted(retval, key=lambda x: x['datetime'])
 
 
 def cancel(cookies, session):
@@ -198,8 +205,8 @@ def cancel(cookies, session):
 
     data = {
         'b.naiyousentakuCd': 0,
-        'reservedCds': session[1],
-        '__checkbox_reservedCds': session[2],
+        'reservedCds': session['reserved_cds'],
+        '__checkbox_reservedCds': session['checkbox_reserved_cds'],
         'method\x3AdoDelete': '\x8E\xC0\x8Ds',
         'b.page': 1
     }
@@ -221,15 +228,21 @@ def cancel(cookies, session):
         'struts.token.name': 'token',
         'token': token,
         'method\x3AdoDelete': '\x82\xCD\x82\xA2',
-        'b.reservedCd': session[1],
+        'b.reservedCd': session['reserved_cds'],
         'b.page': 1,
         'b.naiyousentakuCd': 0
     }
 
     url = 'https://www.e-license.jp/el25/mobile/m14b.action'
     data.update(DATA)
-    return toyota_req(
+
+    res = toyota_req(
         requests.post(url,
                       headers=HEADERS,
                       data=data,
                       cookies=cookies))
+
+    if not re.search('ｷｬﾝｾﾙしました', res.text):
+        return False
+
+    return res
