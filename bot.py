@@ -7,7 +7,7 @@ block.
 '''
 import os
 import sys
-import tds_api
+from api import tds_api
 
 def _filter_late_weekdays(session):
     """
@@ -65,7 +65,6 @@ def main(args):
 
     avails1 = tds_api.get_availability(cookies)
     avails1 = _apply_filters(avails1)
-
 
 
 if __name__ == '__main__':

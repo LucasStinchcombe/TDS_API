@@ -4,8 +4,8 @@ Toyota Driving School API
 """
 import re
 import requests
-from constants import HEADERS, DATA
-from utils import toyota_req, get_datetime
+from .constants import HEADERS, DATA
+from .utils import toyota_req, get_datetime
 
 def login(username, password):
     """
