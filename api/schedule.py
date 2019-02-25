@@ -1,41 +1,34 @@
-# coding=utf-8
 """
-Toyota Driving School API
+Schedule
 """
+from api.common.constants import HEADERS, DATA
+from api.common.utils import toyota_req, get_datetime
+from api.common import _get_cancel_meta
+
 import re
 import requests
-from .constants import HEADERS, DATA
-from .utils import toyota_req, get_datetime
+from datetime import datetime, timedelta
 
-def login(username, password):
-    """
-    Login to toyota driving school.
+SESSION_START_TIMES= [timedelta(hours=7, minutes=50),
+                      timedelta(hours=8, minutes=50),
+                      timedelta(hours=9, minutes=50),
+                      timedelta(hours=10, minutes=50),
+                      timedelta(hours=11, minutes=50),
+                      timedelta(hours=12, minutes=50),
+                      timedelta(hours=13, minutes=50),
+                      timedelta(hours=14, minutes=50),
+                      timedelta(hours=16, minutes=00),
+                      timedelta(hours=17, minutes=00),
+                      timedelta(hours=18, minutes=00),
+                      timedelta(hours=19, minutes=00),
+                      timedelta(hours=20, minutes=00)]
 
-    :param username: username
-    :param password: password
-    :return: cookies
-    """
-    url = 'https://www.e-license.jp/el25/mobile/p01a.action'
+SESSION_IDX = {}
+for i in range(len(SESSION_START_TIMES)):
+    SESSION_IDX[SESSION_START_TIMES[i]] = i + 1
 
-    data = {
-        'b.studentId': username,
-        'b.password': password,
-        'method\x3AdoLogin': '\x83\x8D\x83\x4f\x83\x43\x83\x93',
-        'b.kamokuCd': '',
-    }
 
-    data.update(DATA)
-    res = toyota_req(
-        requests.post(url, headers=HEADERS, data=data)
-    )
-
-    reg = '教習生'
-    if re.search(reg, res.text):
-        return res.cookies
-
-    return None
-
-def get_availability(cookies):
+def get(cookies):
     """
     get availability.
 
@@ -73,31 +66,38 @@ def get_availability(cookies):
 
         session_dt = get_datetime(int(match.group(2)),
                                   int(match.group(3)))
-        retval.append({
-            "date": session_dt,
-            "schedule": list(match.group(4).replace(' ', '')),
-            "car_model_cd": car_model_cd
-        })
 
-    return sorted(retval, key=lambda x: x["date"])
+        sessions = list(match.group(4).replace(' ', ''))
+        for i in range(len(sessions)):
+            if sessions[i] != 'X':
+                retval.append({
+                    'datetime': session_dt + SESSION_START_TIMES[i],
+                    'car_model_cd': car_model_cd,
+                    'status': sessions[i]
+                })
 
-def register(cookies, session, period_idx):
+    return retval
+
+
+def register(cookies, session):
     """
     Register for section for month, day period.
 
     :param date: datetime date object
-    :param session: session returned from get_availability()
-    :param period_idx: index in session schedule of period to register
+    :param session: session returned from availability.get()
     """
 
-    register_date = session['date']
-    car_model_cd = session['car_model_cd']
+    date_string = session['datetime'].strftime('%Y%m%d')
+    time_delta = (session['datetime']
+                  - datetime(year=session['datetime'].year,
+                             month=session['datetime'].month,
+                             day=session['datetime'].day))
 
-    date_string = register_date.strftime('%Y%m%d')
+    session_idx = SESSION_IDX[time_delta]
     token_url = 'https://www.e-license.jp/el25/mobile/m03d.action'
     params = {
-        'b.carModelCd': car_model_cd,
-        'b.infoPeriodNumber': period_idx + 1,
+        'b.carModelCd': session['car_model_cd'],
+        'b.infoPeriodNumber': session_idx,
         'b.dateInformationType': date_string,
         'b.instructorCd': 0,
         'b.page': 1,
@@ -145,58 +145,16 @@ def register(cookies, session, period_idx):
 
     return res
 
-def get_cancel_choices(cookies):
-    """
-    Get choices for cancel.
-
-    :param cookies: cookies from login()
-    """
-    url = 'https://www.e-license.jp/el25/mobile/m02a.action'
-
-    params = {
-        'b.processCd': 'F',
-    }
-
-    params.update(DATA)
-    res = toyota_req(
-        requests.get(url,
-                     headers=HEADERS,
-                     params=params,
-                     cookies=cookies)
-    )
-
-    if not res:
-        return None
-
-    input_reg = '<input .* value="([0-9]*)" .*>'
-    date_reg = '<font .*>([0-9]*)/([0-9]*) ([0-9]*):([0-9]*).*</font>'
-    reg = ('<td.*>.*' + input_reg + input_reg + '</td>' +
-           '[\r\t\n]*<td>' + date_reg + '</td>')
-
-    retval = []
-    for match in re.finditer(reg, res.text):
-        reserved_cds = match.group(1)
-        checkbox_reserved_cds = match.group(2)
-
-        session_dt = get_datetime(int(match.group(3)),
-                                  int(match.group(4)),
-                                  int(match.group(5)),
-                                  int(match.group(6)))
-
-        retval.append({
-            'datetime': session_dt,
-            'reserved_cds':reserved_cds,
-            'checkbox_reserved_cds': checkbox_reserved_cds
-        })
-
-    return sorted(retval, key=lambda x: x['datetime'])
 
 def cancel(cookies, session):
     """
-    Cancel session from cancel_choices()
+    Cancel session
 
     :param cookies: cookies from login()
+    :param session: session
     """
+
+    session = _get_cancel_meta(cookies, session)
 
     url = 'https://www.e-license.jp/el25/mobile/m14a.action'
 

@@ -5,7 +5,6 @@ Utilities for TDS API
 from datetime import datetime
 import re
 
-
 def toyota_req(res):
     """
     Filters out expired session responses.
