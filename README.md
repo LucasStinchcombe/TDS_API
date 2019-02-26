@@ -1,3 +1,3 @@
-# Toyota Driving School API (and bot)
+# Toyota Driving School API
 
-I'm getting my motorcycle license and the driving school has online course registration so I figured I would automate it.
+Api for my motorcycle driving school in Tokyo.
