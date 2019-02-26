@@ -1,54 +1,41 @@
 '''
-Simple example bot I used for own scheduling.
-
-I live >30 min away so I want to book 2 hours at a time.
-On weekdays, the earliest I can make it is 7:00pm which is the second to last
-block.
+Simple example bot I used for my own scheduling.
 '''
 import os
 import sys
-from api import tds_api
+import api
+import time
+import signal
+import logging
 
-def _filter_late_weekdays(session):
+from datetime import datetime, timedelta
+
+SLEEP_SECONDS = 60
+STOP_EVENT = False
+
+def sigint_handler(sig, frame):
+    global STOP_EVENT
+    STOP_EVENT = True
+
+signal.signal(signal.SIGINT, sigint_handler)
+
+
+def _filter_work_hours(x):
     """
-    Filters out availabilities that are weekdays before 7pm.
+    Filter out work hours.
     """
+    if (x['datetime'].weekday() < 5
+            and x['datetime'].hour < 19):
+        return False
+    else:
+        return True
 
-    # if weekday
-    if session['date'].weekday() < 5:
-
-        for i in range(len(session['schedule']) - 2):
-            if session['schedule'][i] == 'O':
-                session['schedule'][i] = 'L'
-    return session
-
-def _filter_out_of_order(sessions):
+def _filter_non_cancellable(x):
     """
-    Filters out availabilities that are before currently scheduled days.
+    Filter out sessions that are less than or equal to 24 hours away.
     """
-    for i in range(len(sessions)):
+    return x['datetime'] > datetime.now() + timedelta(hours=24)
 
-        session = sessions[i]
-
-        # Find first 'J'
-        if 'J' in session['schedule']:
-            idx = session['schedule'].index('J')
-
-            for j in range(idx):
-                session['schedule'][j] = 'N'
-
-            for k in range(i):
-                sessions[k]['schedule'] = ['N'] * 13
-
-    return sessions
-
-def _apply_filters(sessions):
-    """
-    Apply all filters.
-    """
-    sessions = _filter_out_of_order(sessions)
-    sessions = map(_filter_late_weekdays, sessions)
-    return sessions
 
 def main(args):
     """
@@ -61,11 +48,34 @@ def main(args):
         username = args[0]
         password = args[1]
 
-    cookies = tds_api.login(username, password)
+    while not STOP_EVENT:
+        try:
+            cookies = api.login(username, password)
 
-    avails1 = tds_api.get_availability(cookies)
-    avails1 = _apply_filters(avails1)
+            schedule = api.schedule.get(cookies)
+            schedule = list(filter(_filter_work_hours, schedule))
 
+            avails = []
+            for session in reversed(schedule):
+                if session['status'] == 'O':
+                    avails.append(session)
+                elif session['status'] == 'J':
+                    break
+
+            for session in reversed(avails):
+                logging.INFO('registering session: ', session)
+                api.schedule.register(session)
+
+        except:
+            # IGNORE EVERYTHING, KEEP GOING
+            pass
+
+        finally:
+            for i in range(SLEEP_SECONDS):
+                if STOP_EVENT:
+                    break
+
+                time.sleep(1)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

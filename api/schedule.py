@@ -76,6 +76,7 @@ def get(cookies):
                     'status': sessions[i]
                 })
 
+    retval.sort(key=lambda x: x['datetime'])
     return retval
 
 
