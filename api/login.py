@@ -1,11 +1,11 @@
 """
 Login
 """
-from api.common.constants import HEADERS, DATA
-from api.common.utils import toyota_req
-
 import re
 import requests
+
+from api.common.constants import HEADERS, DATA
+from api.common.utils import toyota_req
 
 def login(username, password):
     """

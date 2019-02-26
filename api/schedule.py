@@ -1,31 +1,32 @@
 """
 Schedule
 """
+import re
+from datetime import datetime, timedelta
+import requests
+
 from api.common.constants import HEADERS, DATA
 from api.common.utils import toyota_req, get_datetime
 from api.common import _get_cancel_meta
 
-import re
-import requests
-from datetime import datetime, timedelta
-
-SESSION_START_TIMES= [timedelta(hours=7, minutes=50),
-                      timedelta(hours=8, minutes=50),
-                      timedelta(hours=9, minutes=50),
-                      timedelta(hours=10, minutes=50),
-                      timedelta(hours=11, minutes=50),
-                      timedelta(hours=12, minutes=50),
-                      timedelta(hours=13, minutes=50),
-                      timedelta(hours=14, minutes=50),
-                      timedelta(hours=16, minutes=00),
-                      timedelta(hours=17, minutes=00),
-                      timedelta(hours=18, minutes=00),
-                      timedelta(hours=19, minutes=00),
-                      timedelta(hours=20, minutes=00)]
+SESSION_START_TIMES = [timedelta(hours=7, minutes=50),
+                       timedelta(hours=8, minutes=50),
+                       timedelta(hours=9, minutes=50),
+                       timedelta(hours=10, minutes=50),
+                       timedelta(hours=11, minutes=50),
+                       timedelta(hours=12, minutes=50),
+                       timedelta(hours=13, minutes=50),
+                       timedelta(hours=14, minutes=50),
+                       timedelta(hours=16, minutes=00),
+                       timedelta(hours=17, minutes=00),
+                       timedelta(hours=18, minutes=00),
+                       timedelta(hours=19, minutes=00),
+                       timedelta(hours=20, minutes=00)]
 
 SESSION_IDX = {}
-for i in range(len(SESSION_START_TIMES)):
-    SESSION_IDX[SESSION_START_TIMES[i]] = i + 1
+#pylint: disable=consider-using-enumerate
+for j in range(len(SESSION_START_TIMES)):
+    SESSION_IDX[SESSION_START_TIMES[j]] = j + 1
 
 
 def get(cookies):
@@ -45,6 +46,7 @@ def get(cookies):
     }
     params.update(DATA)
 
+    #pylint: disable=R0801
     res = toyota_req(
         requests.get(url,
                      headers=HEADERS,

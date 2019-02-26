@@ -1,8 +1,11 @@
-from api.common.constants import HEADERS, DATA
-from api.common.utils import toyota_req, get_datetime
-
+"""
+common module
+"""
 import re
 import requests
+
+from api.common.constants import HEADERS, DATA
+from api.common.utils import toyota_req, get_datetime
 
 # HELPER for cancel
 def _get_cancel_meta(cookies, session):
@@ -18,6 +21,7 @@ def _get_cancel_meta(cookies, session):
         'b.processCd': 'F',
     }
 
+    #pylint: disable=duplicate-code
     params.update(DATA)
     res = toyota_req(
         requests.get(url,
@@ -34,7 +38,6 @@ def _get_cancel_meta(cookies, session):
     reg = ('<td.*>.*' + input_reg + input_reg + '</td>' +
            '[\r\t\n]*<td>' + date_reg + '</td>')
 
-    retval = []
     for match in re.finditer(reg, res.text):
         session_dt = get_datetime(int(match.group(3)),
                                   int(match.group(4)),

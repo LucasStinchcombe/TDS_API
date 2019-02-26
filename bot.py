@@ -3,38 +3,42 @@ Simple example bot I used for my own scheduling.
 '''
 import os
 import sys
-import api
 import time
 import signal
 import logging
-
 from datetime import datetime, timedelta
+
+import api
 
 SLEEP_SECONDS = 60
 STOP_EVENT = False
 
 def sigint_handler(sig, frame):
+    """
+    handler for SIGINT
+    """
+    #pylint: disable=global-statement, unused-argument
     global STOP_EVENT
     STOP_EVENT = True
 
 signal.signal(signal.SIGINT, sigint_handler)
 
 
-def _filter_work_hours(x):
+def _filter_work_hours(session):
     """
     Filter out work hours.
     """
-    if (x['datetime'].weekday() < 5
-            and x['datetime'].hour < 19):
+    if (session['datetime'].weekday() < 5
+            and session['datetime'].hour < 19):
         return False
-    else:
-        return True
 
-def _filter_non_cancellable(x):
+    return True
+
+def _filter_non_cancellable(session):
     """
     Filter out sessions that are less than or equal to 24 hours away.
     """
-    return x['datetime'] > datetime.now() + timedelta(hours=24)
+    return session['datetime'] > datetime.now() + timedelta(hours=24)
 
 
 def main(args):
@@ -63,15 +67,16 @@ def main(args):
                     break
 
             for session in reversed(avails):
-                logging.INFO('registering session: ', session)
-                api.schedule.register(session)
+                logging.info('registering session: %s', session)
+                api.schedule.register(cookies, session)
 
+        #pylint: disable=bare-except
         except:
             # IGNORE EVERYTHING, KEEP GOING
             pass
 
         finally:
-            for i in range(SLEEP_SECONDS):
+            for _ in range(SLEEP_SECONDS):
                 if STOP_EVENT:
                     break
 
