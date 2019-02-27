@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 
 import api
 
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.INFO)
+
 SLEEP_SECONDS = 60
 STOP_EVENT = False
 
@@ -67,7 +70,7 @@ def main(args):
                     break
 
             for session in reversed(avails):
-                logging.info('registering session: %s', session)
+                LOG.info('registering session: %s', session)
                 api.schedule.register(cookies, session)
 
         #pylint: disable=bare-except
