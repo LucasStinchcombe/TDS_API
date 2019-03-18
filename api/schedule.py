@@ -59,22 +59,25 @@ def get(cookies):
 
     date_reg = r'(.*)月(.*)日\(.*\)'
     sched_reg = r'([XO -J]*)'
-    reg = (r'<a href=.*b\.carModelCd=([0-9]*).*>' + date_reg + '</a>'
+    reg = (r'<a href=.*b\.carModelCd=([0-9]*).*'
+           + 'b\.groupCd=([0-9]*).*>' + date_reg + '</a>'
            + '<br>[\r\t\n]*' + sched_reg + '<br>')
 
     retval = []
     for match in re.finditer(reg, res.text):
         car_model_cd = match.group(1)
+        group_cd = match.group(2)
 
-        session_dt = get_datetime(int(match.group(2)),
-                                  int(match.group(3)))
+        session_dt = get_datetime(int(match.group(3)),
+                                  int(match.group(4)))
 
-        sessions = list(match.group(4).replace(' ', ''))
+        sessions = list(match.group(5).replace(' ', ''))
         for i in range(len(sessions)):
             if sessions[i] != 'X':
                 retval.append({
                     'datetime': session_dt + SESSION_START_TIMES[i],
                     'car_model_cd': car_model_cd,
+                    'group_cd': group_cd,
                     'status': sessions[i]
                 })
 
@@ -105,10 +108,10 @@ def register(cookies, session):
         'b.instructorCd': 0,
         'b.page': 1,
         'b.instructorTypeCd': 0,
-        'b.groupCd': 1,
         'b.processCd': 'V',
         'b.kamokuCd': 0,
-        'b.nominationInstructorCd': 0
+        'b.nominationInstructorCd': 0,
+        'b.groupCd': session['group_cd']
     }
 
     params.update(DATA)
@@ -132,7 +135,7 @@ def register(cookies, session):
         'struts.token.name': 'token',
         'token': token,
         'method\x3AdoYes': '\x82\xCD\x82\xA2',
-        'b.changeInstructorFlg': 0
+        'b.changeInstructorFlg': 0,
     }
     data.update(params)
 

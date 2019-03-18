@@ -48,8 +48,8 @@ def main(args):
     """
     main routine gets cookies, gets availabilities.
     """
-    username = os.environ['TDS_USERNAME']
-    password = os.environ['TDS_PASSWORD']
+    username = os.environ.get('TDS_USERNAME')
+    password = os.environ.get('TDS_PASSWORD')
 
     if len(args) > 1:
         username = args[0]
@@ -62,6 +62,7 @@ def main(args):
             schedule = api.schedule.get(cookies)
             schedule = list(filter(_filter_work_hours, schedule))
 
+
             avails = []
             for session in reversed(schedule):
                 if session['status'] == 'O':
@@ -70,8 +71,11 @@ def main(args):
                     break
 
             for session in reversed(avails):
-                LOG.info('registering session: %s', session)
-                api.schedule.register(cookies, session)
+                print('registering session: {}'.format(session))
+
+                result = api.schedule.register(cookies, session)
+                if not result:
+                    print("registration failed.")
 
         #pylint: disable=bare-except
         except:
